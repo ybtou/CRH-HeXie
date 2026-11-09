@@ -77,8 +77,7 @@ final class CreateAssemblyWorld implements AssemblyTraversal.Source<BlockPos> {
         BlockState state = stateAt(pos);
         // A head-mounted bogey is a real assembly support even though the head owns
         // its floor collision. Create's generic empty-collider rule must not drop it.
-        boolean mountedBogey = state.getBlock() instanceof HexieBogeyBlock<?>
-                && state.getValue(HexieBogeyBlock.HEAD_MOUNTED);
+        boolean mountedBogey = willow.train.hexie.blocks.bogeys.HeadBogeyCells.isSupport(state);
         if (!mountedBogey && !BlockMovementChecks.isMovementNecessary(state, world, pos))
             return AssemblyTraversal.Cell.EMPTY;
         return BlockMovementChecks.isMovementAllowed(state, world, pos)
@@ -127,7 +126,7 @@ final class CreateAssemblyWorld implements AssemblyTraversal.Source<BlockPos> {
             }
         } else if(state.getBlock() instanceof willow.train.hexie.blocks.parts.PartMemberBlock
                 ||state.getBlock() instanceof willow.train.hexie.blocks.emu.head.HeadFloorBlock
-                ||state.getBlock() instanceof HexieBogeyBlock<?> && state.getValue(HexieBogeyBlock.HEAD_MOUNTED)) {
+                ||willow.train.hexie.blocks.bogeys.HeadBogeyCells.isSupport(state)) {
             throw new IllegalStateException("车辆部件缺少所属根: "+pos);
         }
         Set<BlockPos> visited = Set.of();

@@ -37,7 +37,7 @@ public final class CRH2HeadBlock extends Block implements EntityBlock, willow.tr
             var pos=root.offset(HeadGeometry.offset(i,facing));
             var old=i==HeadGeometry.BOGEY_PART && (!(level instanceof Level world)||world.hasChunkAt(pos))
                     ? level.getBlockState(pos) : net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
-            if(i==HeadGeometry.BOGEY_PART && old.getBlock() instanceof HexieBogeyBlock<?> && old.getValue(HexieBogeyBlock.HEAD_MOUNTED)
+            if(i==HeadGeometry.BOGEY_PART && willow.train.hexie.blocks.bogeys.HeadBogeyCells.isSupport(old)
                     && root.equals(HeadGeometry.owner(level,pos)))cells.put(pos,old);
             else cells.put(pos,BlockInit.CRH2A_HEAD_FLOOR.get().defaultBlockState().setValue(FACING,facing).setValue(HeadFloorBlock.PART,i));
         }
@@ -90,18 +90,31 @@ public final class CRH2HeadBlock extends Block implements EntityBlock, willow.tr
     public static void placeBogey(Level w,BlockPos root,Direction facing) {
         if (w.isClientSide) return;
         var pos=root.offset(HeadGeometry.offset(HeadGeometry.BOGEY_PART,facing));
-        if (!(w.getBlockState(pos).getBlock() instanceof HeadFloorBlock)) return;
-        var rail=w.getBlockState(pos.below());
-        if (rail.getBlock() instanceof ITrackBlock track) {
-            var normal=track.getUpNormal(w,pos.below(),rail);
-            var axes=track.getTrackAxes(w,pos.below(),rail);
-            if (Math.abs(normal.y-1)>1e-6 || axes.size()!=1) return;
-            var axis=axes.getFirst();
-            if (Math.abs(axis.y)>1e-6 || (facing.getAxis()==Direction.Axis.X ? Math.abs(axis.z)>1e-6 : Math.abs(axis.x)>1e-6)) return;
+        var current=w.getBlockState(pos);
+        if (willow.train.hexie.compat.sable.SableInteractionCoordinates.contains(w,pos)) {
+            // Simurail builds its pivot and axles only for a block entity owned by a sub-level,
+            // and that is exactly the case which has to follow the rail graph. A head placed
+            // before the structure was physicalised is upgraded on the next scheduled tick.
+            if (!willow.train.hexie.compat.HeXieSimurailBogey.isPhysicsBogey(current))
+                willow.train.hexie.compat.HeXieSimurailBogey.place(w,pos,facing);
+            return;
         }
-        // A physics structure carries its own floor, so world tracks never appear below the part.
-        // The head already defines the axis there; hang the bogey from the head instead.
-        else if (!willow.train.hexie.compat.sable.SableInteractionCoordinates.contains(w,pos)) return;
+        if (current.getBlock() instanceof HexieBogeyBlock<?> && current.getValue(HexieBogeyBlock.HEAD_MOUNTED)) return;
+        // A cell carrying Simurail's bogey is eligible again after the structure leaves its plot.
+        if (!(current.getBlock() instanceof HeadFloorBlock)
+                && !willow.train.hexie.compat.HeXieSimurailBogey.isPhysicsBogey(current)) return;
+        // A physical structure carries its own floor, so world tracks never appear under the part.
+        var rail=w.getBlockState(pos.below());
+        if (!(rail.getBlock() instanceof ITrackBlock track)) return;
+        var normal=track.getUpNormal(w,pos.below(),rail);
+        var axes=track.getTrackAxes(w,pos.below(),rail);
+        if (Math.abs(normal.y-1)>1e-6 || axes.size()!=1) return;
+        var axis=axes.getFirst();
+        if (Math.abs(axis.y)>1e-6 || (facing.getAxis()==Direction.Axis.X ? Math.abs(axis.z)>1e-6 : Math.abs(axis.x)>1e-6)) return;
+        mountOwnBogey(w,pos,facing);
+    }
+
+    private static void mountOwnBogey(Level w,BlockPos pos,Direction facing) {
         var state=TrackBlockInit.DT206_BOGEY.getDefaultState()
                 .setValue(BlockStateProperties.HORIZONTAL_AXIS,facing.getAxis()).setValue(HexieBogeyBlock.HEAD_MOUNTED,true);
         if (!w.setBlock(pos,state,Block.UPDATE_ALL)) return;
@@ -138,7 +151,7 @@ public final class CRH2HeadBlock extends Block implements EntityBlock, willow.tr
             if(i==HeadGeometry.ROOT_PART) continue;
             var at=root.offset(HeadGeometry.offset(i,facing));var part=w.getBlockState(at);
             boolean floor=part.getBlock() instanceof HeadFloorBlock && part.getValue(HeadFloorBlock.PART)==i && part.getValue(FACING)==facing;
-            boolean support=i==HeadGeometry.BOGEY_PART && part.getBlock() instanceof HexieBogeyBlock<?> && part.getValue(HexieBogeyBlock.HEAD_MOUNTED);
+            boolean support=i==HeadGeometry.BOGEY_PART && willow.train.hexie.blocks.bogeys.HeadBogeyCells.isSupport(part);
             if(floor||support) w.removeBlock(at,false);
         }
     }

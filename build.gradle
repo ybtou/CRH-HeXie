@@ -204,6 +204,10 @@ dependencies {
     compileOnly("com.crystaelix:simurail:${simurail_version}") {
         transitive = false
     }
+    // Simurail's physics bogey block implements Sable interfaces, so the API needs them in scope.
+    compileOnly("maven.modrinth:sable:${sable_version}") {
+        transitive = false
+    }
     compileOnly("com.lhwdev.minecraft.railx:railx:${railx_version}") {
         transitive = false
     }

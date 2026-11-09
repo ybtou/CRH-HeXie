@@ -40,8 +40,7 @@ public final class HeadFloorBlock extends Block implements com.simibubi.create.a
     @Override protected void onRemove(BlockState state,Level level,BlockPos pos,BlockState next,boolean moving) {
         boolean installingBogeySupport = false;
         if (state.getValue(PART) == HeadGeometry.BOGEY_PART
-                && next.getBlock() instanceof willow.train.hexie.blocks.bogeys.HexieBogeyBlock<?> bogey
-                && next.getValue(willow.train.hexie.blocks.bogeys.HexieBogeyBlock.HEAD_MOUNTED)) {
+                && willow.train.hexie.blocks.bogeys.HeadBogeyCells.isSupport(next)) {
             var root = pos.subtract(HeadGeometry.offset(state.getValue(PART), state.getValue(CRH2HeadBlock.FACING)));
             var rootState = level.getBlockState(root);
             installingBogeySupport = rootState.getBlock() instanceof CRH2HeadBlock

@@ -12,6 +12,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import willow.train.hexie.blocks.bogeys.HeadBogeyCells;
 import willow.train.hexie.blocks.bogeys.HexieBogeyBlock;
 import willow.train.hexie.blocks.emu.crh2a.CRH2EndFaceBlock;
 
@@ -79,7 +80,7 @@ public final class HeadGeometry {
             if(world instanceof Level level&&!level.hasChunkAt(root))return null;
             return world.getBlockState(root).getBlock() instanceof CRH2HeadBlock ? root : null;
         }
-        if (state.getBlock() instanceof HexieBogeyBlock<?> && state.getValue(HexieBogeyBlock.HEAD_MOUNTED)) {
+        if (HeadBogeyCells.isSupport(state)) {
             for (var d:Direction.Plane.HORIZONTAL) {
                 var neighbour=pos.relative(d);
                 if(world instanceof Level level&&!level.hasChunkAt(neighbour))continue;
