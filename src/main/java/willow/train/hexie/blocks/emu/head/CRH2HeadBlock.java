@@ -101,7 +101,7 @@ public final class CRH2HeadBlock extends Block implements EntityBlock, willow.tr
         }
         // A physics structure carries its own floor, so world tracks never appear below the part.
         // The head already defines the axis there; hang the bogey from the head instead.
-        else if (!willow.train.hexie.compat.sable.SableInteractionCoordinates.inSubLevel(w,pos)) return;
+        else if (!willow.train.hexie.compat.sable.SableInteractionCoordinates.contains(w,pos)) return;
         var state=TrackBlockInit.DT206_BOGEY.getDefaultState()
                 .setValue(BlockStateProperties.HORIZONTAL_AXIS,facing.getAxis()).setValue(HexieBogeyBlock.HEAD_MOUNTED,true);
         if (!w.setBlock(pos,state,Block.UPDATE_ALL)) return;
