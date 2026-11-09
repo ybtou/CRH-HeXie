@@ -92,12 +92,16 @@ public final class CRH2HeadBlock extends Block implements EntityBlock, willow.tr
         var pos=root.offset(HeadGeometry.offset(HeadGeometry.BOGEY_PART,facing));
         if (!(w.getBlockState(pos).getBlock() instanceof HeadFloorBlock)) return;
         var rail=w.getBlockState(pos.below());
-        if (!(rail.getBlock() instanceof ITrackBlock track)) return;
-        var normal=track.getUpNormal(w,pos.below(),rail);
-        var axes=track.getTrackAxes(w,pos.below(),rail);
-        if (Math.abs(normal.y-1)>1e-6 || axes.size()!=1) return;
-        var axis=axes.getFirst();
-        if (Math.abs(axis.y)>1e-6 || (facing.getAxis()==Direction.Axis.X ? Math.abs(axis.z)>1e-6 : Math.abs(axis.x)>1e-6)) return;
+        if (rail.getBlock() instanceof ITrackBlock track) {
+            var normal=track.getUpNormal(w,pos.below(),rail);
+            var axes=track.getTrackAxes(w,pos.below(),rail);
+            if (Math.abs(normal.y-1)>1e-6 || axes.size()!=1) return;
+            var axis=axes.getFirst();
+            if (Math.abs(axis.y)>1e-6 || (facing.getAxis()==Direction.Axis.X ? Math.abs(axis.z)>1e-6 : Math.abs(axis.x)>1e-6)) return;
+        }
+        // A physics structure carries its own floor, so world tracks never appear below the part.
+        // The head already defines the axis there; hang the bogey from the head instead.
+        else if (!willow.train.hexie.compat.sable.SableInteractionCoordinates.inSubLevel(w,pos)) return;
         var state=TrackBlockInit.DT206_BOGEY.getDefaultState()
                 .setValue(BlockStateProperties.HORIZONTAL_AXIS,facing.getAxis()).setValue(HexieBogeyBlock.HEAD_MOUNTED,true);
         if (!w.setBlock(pos,state,Block.UPDATE_ALL)) return;
