@@ -20,8 +20,7 @@ import willow.train.hexie.blocks.emu.crh2a.CRH2EndFaceBlock;
 public final class HeadGeometry {
     public static final int PARTS = 45;
     public static final int ROOT_PART = 42;
-    /** The head model spans local z -8.44..1.5, so this cell centred at z -3.5 carries the bogey. */
-    public static final int BOGEY_PART = 22;
+    public static final int BOGEY_PART = 17;
     public static final AABB FLOOR = new AABB(-19/16d, 0, -8, 35/16d, 1, 1);
     private static final Map<Direction,List<AABB>> COLLISION = new EnumMap<>(Direction.class);
     static {
