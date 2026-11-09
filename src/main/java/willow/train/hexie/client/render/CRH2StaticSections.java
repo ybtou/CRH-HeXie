@@ -25,7 +25,6 @@ import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import willow.train.hexie.Main;
 import willow.train.hexie.blocks.emu.head.CRH2HeadBlock;
-import willow.train.hexie.compat.sable.SableInteractionCoordinates;
 import willow.train.hexie.blocks.emu.crh2a.CRH2PartBlock;
 
 /** Shared world-shell index: Flywheel instances with vanilla/Sodium section meshes as fallback. */
@@ -43,8 +42,6 @@ public final class CRH2StaticSections {
     // Geometry membership changes only when owners/chunks/models change, never for lighting.
     private static final Map<BlockPos, Map<BlockPos, List<CRH2StaticMesh.Face>>> destinations = new HashMap<>();
     private static final Map<BlockPos, Set<BlockPos>> ownerDestinations = new HashMap<>();
-    // Owners inside Sable storage plots; their shell is drawn by that plot's section meshes.
-    private static final Set<BlockPos> subLevelRoots = new HashSet<>();
 
     private CRH2StaticSections() {}
 
@@ -108,7 +105,6 @@ public final class CRH2StaticSections {
     private static void clear() {
         clearVisuals();
         observed.clear(); dirty.clear(); destinations.clear(); ownerDestinations.clear();
-        subLevelRoots.clear();
         observedLevel = null; observedModels = null;
     }
 
@@ -121,9 +117,8 @@ public final class CRH2StaticSections {
 
     private static void addVisual(BlockPos root, BlockState state) {
         if (visualizationManager == null || !models.meshes.containsKey(state)) return;
-        // An effect instance would sit at plot coordinates, outside the pose the physics
-        // structure is rendered with, so these roots are served by the section meshes instead.
-        if (subLevelRoots.contains(root)) return;
+        // The visual follows the storage plot's rendered pose, so physics structures use the same
+        // instanced shell as the ordinary world instead of rebuilding section meshes.
         var shell = new CRH2ShellVisual.Shell(observedLevel, root.immutable(), state);
         shells.put(root, shell);
         visualizationManager.effects().queueAdd(shell);
@@ -147,12 +142,7 @@ public final class CRH2StaticSections {
             dirty.add(target);
         }
         var mesh = models.meshes.get(state);
-        if (mesh == null) {
-            subLevelRoots.remove(root);
-            return;
-        }
-        if (SableInteractionCoordinates.inSubLevel(observedLevel, root)) subLevelRoots.add(root);
-        else subLevelRoots.remove(root);
+        if (mesh == null) return;
         addVisual(root, state);
         var groups = new HashMap<BlockPos, List<CRH2StaticMesh.Face>>();
         for (var face : mesh.faces)
@@ -201,14 +191,12 @@ public final class CRH2StaticSections {
         dirty.remove(destination);
         // Ordinary terrain sections do no train lookups or lighting work.
         if (entries == null) return;
-        // The baked-model wrapper suppresses owner quads everywhere. Flywheel effects cover the
-        // ordinary world; Sable storage plots must take these meshes, because an effect instance
-        // sits at plot coordinates and never receives the pose applied to the structure.
-        boolean flywheelShells = visualizationManager != null;
+        // The baked-model wrapper suppresses owner quads everywhere. Flywheel visuals cover both
+        // worlds; these section meshes only serve the fallback without a visualization manager.
         var draws = new ArrayList<Draw>();
         var lights = new HashMap<BlockPos, Integer>();
         for (var entry : entries.entrySet()) {
-            if (flywheelShells && !subLevelRoots.contains(entry.getKey())) continue;
+            if (visualizationManager != null) continue;
             for (var face : entry.getValue()) {
                 var cell = entry.getKey().offset(face.cell());
                 int[] light = new int[4];

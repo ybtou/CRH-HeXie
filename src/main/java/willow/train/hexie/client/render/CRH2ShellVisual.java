@@ -52,13 +52,20 @@ final class CRH2ShellVisual implements EffectVisual<CRH2ShellVisual.Shell>, Shad
 
     private final TransformedInstance instance;
     private final LongSet lightSections;
+    private final Shell shell;
+    private final double originX, originY, originZ;
+    private final org.joml.Matrix4f transform = new org.joml.Matrix4f();
+    private final org.joml.Matrix4f applied = new org.joml.Matrix4f();
 
     private CRH2ShellVisual(VisualizationContext context, Shell shell) {
         Model model = MODELS.get(shell.state());
         instance = context.instancerProvider().instancer(InstanceTypes.TRANSFORMED, model).createInstance();
+        this.shell = shell;
         var origin = context.renderOrigin();
-        instance.setIdentityTransform().translate(shell.pos().getX() - origin.getX(),
-                shell.pos().getY() - origin.getY(), shell.pos().getZ() - origin.getZ()).setChanged();
+        originX = origin.getX(); originY = origin.getY(); originZ = origin.getZ();
+        // A storage plot rotates and translates its contents; follow that pose every frame so the
+        // shell keeps reusing one instanced mesh instead of rebuilding section geometry per frame.
+        apply(0);
         // Track the whole model, including neighbouring light samples, not just its root section.
         var sphere = model.boundingSphere();
         lightSections = sections(shell.pos().getX() + sphere.x(), shell.pos().getY() + sphere.y(),
@@ -76,6 +83,16 @@ final class CRH2ShellVisual implements EffectVisual<CRH2ShellVisual.Shell>, Shad
 
     @Override public void setSectionCollector(SectionCollector collector) { collector.sections(lightSections); }
     // State changes replace the immutable Shell; Flywheel recreates visuals on render-origin changes.
-    @Override public void update(float partialTick) {}
+    @Override public void update(float partialTick) { apply(partialTick); }
+
+    private void apply(float partialTick) {
+        if (!willow.train.hexie.compat.sable.SableInteractionCoordinates.renderInstanceMatrix(
+                shell.level(), shell.pos(), partialTick, originX, originY, originZ, transform))
+            transform.identity().translate((float) (shell.pos().getX() - originX),
+                    (float) (shell.pos().getY() - originY), (float) (shell.pos().getZ() - originZ));
+        if (transform.equals(applied)) return;
+        applied.set(transform);
+        instance.setTransform(applied).setChanged();
+    }
     @Override public void delete() { instance.delete(); }
 }

@@ -53,6 +53,18 @@ public final class SableInteractionCoordinates {
         return loaded() ? Loaded.renderEye(viewer, partialTick) : viewer.getEyePosition(partialTick);
     }
 
+    /**
+     * Render transform for an instance whose model is local to the block, relative to a render
+     * origin. Storage-plot blocks are rotated and translated by the structure's current pose; the
+     * ordinary world keeps a plain translation. Returns false when the block is not in a plot.
+     */
+    public static boolean renderInstanceMatrix(Level level, BlockPos pos, float partialTick,
+                                               double originX, double originY, double originZ,
+                                               org.joml.Matrix4f out) {
+        return level != null && loaded() && Loaded.renderInstanceMatrix(level, pos, partialTick,
+                originX, originY, originZ, out);
+    }
+
     /** True when the block lives in a Sable storage plot, i.e. it sits on a physics structure. */
     public static boolean inSubLevel(Level level, BlockPos pos) {
         return level != null && loaded() && Loaded.containing(level, pos) != null;
@@ -85,6 +97,19 @@ public final class SableInteractionCoordinates {
         private static Frame logical(Level level, BlockPos owner) {
             var subLevel = invoke(API.containingBlock, API.helper, level, owner);
             return subLevel == null ? WORLD : frame(invoke(API.logicalPose, subLevel));
+        }
+
+        /** M = translate(-origin) * pose * translate(pos): pose maps plot coordinates to the world. */
+        private static boolean renderInstanceMatrix(Level level, BlockPos pos, float partialTick,
+                                                    double originX, double originY, double originZ,
+                                                    org.joml.Matrix4f out) {
+            var subLevel = invoke(API.containingBlock, API.helper, level, pos);
+            if (subLevel == null) return false;
+            var pose = new org.joml.Matrix4d();
+            invoke(API.bakePose, renderPose(subLevel, partialTick), pose);
+            pose.translate(pos.getX(), pos.getY(), pos.getZ());
+            out.set(new org.joml.Matrix4d().translate(-originX, -originY, -originZ).mul(pose));
+            return true;
         }
 
         private static Frame render(Level level, BlockPos owner, float partialTick) {
@@ -151,7 +176,7 @@ public final class SableInteractionCoordinates {
             final Object helper;
             final Class<?> clientSubLevel, poseProvider;
             final Constructor<?> copyPose;
-            final Method containingBlock, containingPosition, logicalPose, renderPose;
+            final Method containingBlock, containingPosition, logicalPose, renderPose, bakePose;
             final Method toStorage, toWorld, renderEye, pushPose, popPose;
 
             Api() {
@@ -168,6 +193,7 @@ public final class SableInteractionCoordinates {
                     containingPosition = helper.getClass().getMethod("getContaining", Level.class, Position.class);
                     logicalPose = subLevel.getMethod("logicalPose");
                     renderPose = clientSubLevel.getMethod("renderPose", float.class);
+                    bakePose = pose.getMethod("bakeIntoMatrix", org.joml.Matrix4d.class);
                     copyPose = mutablePose.getConstructor(pose);
                     toStorage = pose.getMethod("transformPositionInverse", Vec3.class);
                     toWorld = pose.getMethod("transformPosition", Vec3.class);
