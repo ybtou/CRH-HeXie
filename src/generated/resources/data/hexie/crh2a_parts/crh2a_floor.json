@@ -7,7 +7,6 @@
   "side": false,
   "remote": false,
   "check_side": false,
-  "solid": true,
   "bounds": [
     0.0,
     0.8125,

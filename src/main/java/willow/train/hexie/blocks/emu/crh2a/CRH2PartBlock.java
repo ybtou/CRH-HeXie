@@ -59,10 +59,7 @@ public class CRH2PartBlock extends HorizontalBlockBase implements willow.train.h
     @Override public VoxelShape getShape(BlockState s, BlockGetter w, BlockPos p, CollisionContext c) {
         return geometry.piece(s.getValue(PART),s.getValue(FACING),right(s));
     }
-    @Override public VoxelShape getCollisionShape(BlockState s, BlockGetter w, BlockPos p, CollisionContext c) {
-        var shape = geometry.collision(s.getValue(PART), s.getValue(FACING), right(s));
-        return shape.isEmpty() ? getShape(s, w, p, c) : shape;
-    }
+    @Override public VoxelShape getCollisionShape(BlockState s, BlockGetter w, BlockPos p, CollisionContext c) { return getShape(s,w,p,c); }
 
     /** Check occupied cells, not the full visual bounds or just other collision shapes. */
     public boolean canFitSide(Level level, BlockPos pos, BlockState state) {
