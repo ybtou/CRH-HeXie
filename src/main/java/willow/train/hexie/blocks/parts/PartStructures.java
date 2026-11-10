@@ -19,7 +19,8 @@ public final class PartStructures {
         BlockPos root=pos;
         if(state.getBlock() instanceof PartMemberBlock)root=PartMemberBlock.owner(pos,state);
         else if(state.getBlock() instanceof HeadFloorBlock)root=pos.subtract(HeadGeometry.offset(state.getValue(HeadFloorBlock.PART),state.getValue(CRH2HeadBlock.FACING)));
-        else if(willow.train.hexie.blocks.bogeys.HeadBogeyCells.isSupport(state)) {
+        else if(state.getBlock() instanceof willow.train.hexie.blocks.bogeys.HexieBogeyBlock<?>
+                &&state.getValue(willow.train.hexie.blocks.bogeys.HexieBogeyBlock.HEAD_MOUNTED)) {
             root=HeadGeometry.owner(level,pos);if(root==null)return null;
         }
         else if(state.getBlock() instanceof PartStructure part)root=part.partRoot(level,pos,state);

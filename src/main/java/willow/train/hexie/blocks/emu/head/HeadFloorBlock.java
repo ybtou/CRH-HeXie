@@ -40,11 +40,14 @@ public final class HeadFloorBlock extends Block implements com.simibubi.create.a
     @Override protected void onRemove(BlockState state,Level level,BlockPos pos,BlockState next,boolean moving) {
         boolean installingBogeySupport = false;
         if (state.getValue(PART) == HeadGeometry.BOGEY_PART
-                && willow.train.hexie.blocks.bogeys.HeadBogeyCells.isSupport(next)) {
+                && next.getBlock() instanceof willow.train.hexie.blocks.bogeys.HexieBogeyBlock<?> bogey
+                && next.getValue(willow.train.hexie.blocks.bogeys.HexieBogeyBlock.HEAD_MOUNTED)) {
             var root = pos.subtract(HeadGeometry.offset(state.getValue(PART), state.getValue(CRH2HeadBlock.FACING)));
             var rootState = level.getBlockState(root);
             installingBogeySupport = rootState.getBlock() instanceof CRH2HeadBlock
                     && rootState.getValue(CRH2HeadBlock.FACING) == state.getValue(CRH2HeadBlock.FACING);
+            if (installingBogeySupport && !level.isClientSide)
+                level.scheduleTick(root, rootState.getBlock(), 1);
         }
         if(!moving&&!state.is(next.getBlock())&&!installingBogeySupport
                 && !willow.train.hexie.blocks.parts.PartInstallation.mutating()) {
@@ -54,7 +57,10 @@ public final class HeadFloorBlock extends Block implements com.simibubi.create.a
         }
         super.onRemove(state,level,pos,next,moving);
     }
-    @Override public ItemStack getCloneItemStack(LevelReader w,BlockPos p,BlockState s) { return willow.train.hexie.init.block.BlockInit.CRH2A_HEAD.get().asItem().getDefaultInstance(); }
+    @Override public ItemStack getCloneItemStack(LevelReader w,BlockPos p,BlockState s) {
+        var root=HeadGeometry.owner(w,p);
+        return root==null?ItemStack.EMPTY:w.getBlockState(root).getBlock().asItem().getDefaultInstance();
+    }
     @Override public BlockState playerWillDestroy(Level w,BlockPos p,BlockState s,Player player) {
         var root=HeadGeometry.owner(w,p);
         if(!w.isClientSide && root!=null) w.destroyBlock(root,!player.isCreative(),player);
