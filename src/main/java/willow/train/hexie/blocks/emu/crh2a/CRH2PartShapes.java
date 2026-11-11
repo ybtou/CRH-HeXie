@@ -15,6 +15,11 @@ final class CRH2PartShapes {
     final BlockPos mount;
     final boolean side;
     final boolean remote;
+    /** Flat parts opt in: every part cell gets one solid column for entity physics. */
+    final boolean solid;
+    /** Solid column reused by every cell; null keeps the decorative piece for collision. */
+    private final VoxelShape[] solidColumn = new VoxelShape[4];
+    private final VoxelShape[] rightSolidColumn = new VoxelShape[4];
     final boolean checkSide;
     final List<BlockPos> cells = new ArrayList<>();
     private final VoxelShape[] shapes = new VoxelShape[4];
@@ -33,6 +38,7 @@ final class CRH2PartShapes {
             side = data.get("side").getAsBoolean();
             remote = data.has("remote") && data.get("remote").getAsBoolean();
             checkSide = data.get("check_side").getAsBoolean();
+            solid = data.has("solid") && data.get("solid").getAsBoolean();
             var fullBounds = box(data.getAsJsonArray("bounds"));
             cells.add(BlockPos.ZERO);
             if (side && !remote) {
@@ -58,12 +64,17 @@ final class CRH2PartShapes {
                     var rotatedClip=rotate(clip,facing);var offset=rotate(cell,facing);
                     pieces[d][i]=Shapes.join(shape,Shapes.create(rotatedClip),BooleanOp.AND).move(-offset.getX(),-offset.getY(),-offset.getZ());
                 }
+                // A solid part keeps its decorative shape for selection and rendering; only
+                // entity collision uses one full cell column. Every part index gets it, so a
+                // stray PART value in an old schematic can never expose an empty collider.
+                if (solid) solidColumn[d] = Shapes.create(rotate(fullBounds, facing));
             }
             int north=Direction.NORTH.get2DDataValue();
             for(var facing:Direction.Plane.HORIZONTAL) {
                 int d=facing.get2DDataValue();rightBounds[d]=rotate(reflect(bounds[north]),facing);
                 rightShapes[d]=reflectedRotation(shapes[north],facing);
                 for(int i=0;i<16;i++)rightPieces[d][i]=reflectedRotation(pieces[north][i],facing);
+                if (solid) rightSolidColumn[d] = reflectedRotation(solidColumn[north], facing);
             }
         } catch (java.io.IOException error) { throw new IllegalStateException("Cannot load " + name,error); }
     }
@@ -79,6 +90,14 @@ final class CRH2PartShapes {
     }
     VoxelShape get(Direction facing,boolean right) { return (right?rightShapes:shapes)[facing.get2DDataValue()]; }
     VoxelShape piece(int part,Direction facing,boolean right) { return (right?rightPieces:pieces)[facing.get2DDataValue()][part]; }
+    /** Entity collision only: solid parts answer with their column, everything else with the piece. */
+    VoxelShape collision(int part,Direction facing,boolean right) {
+        if (solid) {
+            var column = (right ? rightSolidColumn : solidColumn)[facing.get2DDataValue()];
+            if (column != null) return column;
+        }
+        return piece(part, facing, right);
+    }
     AABB bounds(Direction facing,boolean right) { return (right?rightBounds:bounds)[facing.get2DDataValue()]; }
     static BlockPos rotate(BlockPos p, Direction facing) {
         return switch (facing) {
