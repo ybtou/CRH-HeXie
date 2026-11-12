@@ -28,8 +28,20 @@ public final class CarriageStandingClient {
     /** Capture Create's explicit seat removal before it replaces the old seat mapping. */
     public static void dismount(Player player, SnapshotCarriageEntity car, Vec3 localFeet) {
         if (Minecraft.getInstance().player != player) return;
-        player.getPersistentData().remove("ContraptionDismountLocation");
+        // Keep a server-written exit; it is the authoritative right-hand cell for physical
+        // structures and must survive this client-side capture.
+        if (localFeet == null) localFeet = readServerExit(player, car);
         pendingDismount = new Dismount(player, car, localFeet);
+    }
+
+    /** Convert the server's world-space exit back into the carrier's local frame. */
+    private static Vec3 readServerExit(Player player, SnapshotCarriageEntity car) {
+        var data = player.getPersistentData();
+        if (!data.contains("ContraptionDismountLocation")) return null;
+        Vec3 world = net.createmod.catnip.math.VecHelper.readNBT(
+                data.getList("ContraptionDismountLocation", net.minecraft.nbt.Tag.TAG_DOUBLE));
+        if (world == null) return null;
+        return CarriagePlayerSupport.frame(car, 1).local(world);
     }
 
     private static void finishDismount() {

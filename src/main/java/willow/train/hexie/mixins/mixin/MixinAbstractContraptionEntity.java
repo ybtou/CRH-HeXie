@@ -289,6 +289,10 @@ public abstract class MixinAbstractContraptionEntity extends Entity {
                     willow.train.hexie.compat.create.CarriagePlayerSupport.beginDismount(player, car);
                     connection.hexie$beginCarriageDismount(car.getId(), car.getUUID());
                 }
+                // getDismountLocationForPassenger consumes this tag on the server before the
+                // packet handoff, so a physical structure needs its own exit written here.
+                feet = willow.train.hexie.compat.create.TrainSeatDismount.right(
+                        (AbstractContraptionEntity) (Object) this, dismountSeat);
             } else if (!((Object) this instanceof willow.train.hexie.compat.create.SnapshotCarriageEntity)) {
                 feet = willow.train.hexie.compat.create.TrainSeatDismount.behind(
                         (AbstractContraptionEntity) (Object) this, dismountSeat);
