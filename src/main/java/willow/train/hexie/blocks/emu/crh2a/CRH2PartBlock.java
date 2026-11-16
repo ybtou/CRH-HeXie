@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.shapes.*;
@@ -12,10 +13,16 @@ import willow.train.hexie.blocks.base.HorizontalBlockBase;
 /** Ordinary single block, with an exterior side slab like the existing carriage panels. */
 public class CRH2PartBlock extends HorizontalBlockBase implements willow.train.hexie.blocks.parts.PartStructure,
         com.simibubi.create.api.schematic.requirement.SpecialBlockItemRequirement {
+    private static final VoxelShape FLOOR_COLLISION = Block.box(0, 8, 0, 16, 16, 16);
     private final CRH2PartShapes geometry;
+    private final boolean floor;
     public CRH2PartBlock(Properties properties, String model) {
+        this(properties, model, model.equals("crh2a_floor"));
+    }
+    protected CRH2PartBlock(Properties properties, String model, boolean floor) {
         super(properties.dynamicShape());
         geometry = new CRH2PartShapes(model);
+        this.floor = floor;
     }
     public static final net.minecraft.world.level.block.state.properties.IntegerProperty PART = net.minecraft.world.level.block.state.properties.IntegerProperty.create("part",0,15);
     @Override protected void createBlockStateDefinition(net.minecraft.world.level.block.state.StateDefinition.Builder<net.minecraft.world.level.block.Block,BlockState> b) {
@@ -59,9 +66,12 @@ public class CRH2PartBlock extends HorizontalBlockBase implements willow.train.h
     @Override public VoxelShape getShape(BlockState s, BlockGetter w, BlockPos p, CollisionContext c) {
         return geometry.piece(s.getValue(PART),s.getValue(FACING),right(s));
     }
-    @Override public VoxelShape getCollisionShape(BlockState s, BlockGetter w, BlockPos p, CollisionContext c) {
+    @Override public VoxelShape getCollisionShape(BlockState s,BlockGetter w,BlockPos p,CollisionContext c) {
+        // Prefer the per-part solid column so sub-level sweeps hit the full cell height.
         var shape = geometry.collision(s.getValue(PART), s.getValue(FACING), right(s));
-        return shape.isEmpty() ? getShape(s, w, p, c) : shape;
+        if (!shape.isEmpty()) return shape;
+        // Upstream floors keep a half-height collision box when the geometry has none.
+        return floor && s.getValue(PART) == 0 ? FLOOR_COLLISION : getShape(s, w, p, c);
     }
 
     /** Check occupied cells, not the full visual bounds or just other collision shapes. */
