@@ -27,9 +27,7 @@ public abstract class MixinDrivingConsoleDismountSync {
         if (vehicle instanceof SnapshotCarriageEntity car && passenger instanceof Player player) {
             var contraption = car.getContraption();
             var seat = contraption == null ? null : contraption.getSeatOf(player.getUUID());
-            // The server already wrote ContraptionDismountLocation for this exit; only
-            // capture a local feet value when that seat can still be resolved here.
-            Vec3 local = seat == null ? null : TrainSeatDismount.localRight(car, seat);
+            Vec3 local = seat == null ? null : TrainSeatDismount.localBehind(car, seat);
             if (local == null) {
                 Vec3 nativeExit = original.call(vehicle, passenger, partialTicks);
                 // The native exit uses toGlobalVector's anchor, not the render-adjusted
