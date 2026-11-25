@@ -7,7 +7,7 @@ import net.minecraft.world.phys.Vec3;
 
 /** Authored pixels mapped to the north-facing door's local block coordinates. */
 public final class CRH1DoorGeometry {
-    public static final int ANIMATION_TICKS = 5 * 20;
+    public static final int ANIMATION_TICKS = 2 * 20;
     public static final float UNPLUG_PHASE = .25f;
     public static final double OUTWARD_TRAVEL = 1 / 16d;
     public static final double SOUTH_TRAVEL = 20 / 16d;
