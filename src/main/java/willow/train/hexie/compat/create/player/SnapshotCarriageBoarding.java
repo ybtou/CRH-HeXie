@@ -28,6 +28,9 @@ public final class SnapshotCarriageBoarding {
     }
 
     public void restorePassengers(StructureTransform transform) {
+        if (!carriageEntity.getPassengers().isEmpty())
+            SnapshotCarriageEntity.SEAT_LOG.info("[HEXIE-SEAT] restorePassengers EJECT car={} passengers={} client={}",
+                    carriageEntity.getId(), carriageEntity.getPassengers().size(), carriageEntity.level().isClientSide);
         if (carriageEntity.getPassengers().isEmpty()) return;
         carriageEntity.getContraption().addPassengersToWorld(carriageEntity.level(), transform, carriageEntity.getPassengers());
         carriageEntity.ejectPassengers();

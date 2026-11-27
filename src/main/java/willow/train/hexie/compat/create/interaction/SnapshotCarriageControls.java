@@ -21,6 +21,9 @@ public final class SnapshotCarriageControls {
     public SnapshotCarriageControls(SnapshotCarriageEntity carriageEntity) { this.carriageEntity = carriageEntity; }
 
     public boolean handlePlayerInteraction(Player player, BlockPos localPos, Direction side, InteractionHand hand) {
+        // Seat blocks own their click before every lifecycle gate. The work pose is still valid when
+        // behavioursActive is unset, so delegating keeps the reach/floor/coupler gates on the live path.
+        if (carriageEntity.baseHandlePlayerInteraction(player, localPos, side, hand)) return true;
         if (!carriageEntity.behavioursActive) return false;
         if (SnapshotFloorInteraction.handle(carriageEntity, player, localPos, hand)
                 || SnapshotCouplerInteraction.handle(carriageEntity, player, localPos, hand)) return true;
@@ -29,7 +32,8 @@ public final class SnapshotCarriageControls {
         if (nativeControls && carriageEntity.level().isClientSide)
             return HexieBridges.Client.render().snapshotControlsClient().click(carriageEntity, localPos, player);
 
-        boolean handled = carriageEntity.baseHandlePlayerInteraction(player, localPos, side, hand);
+        boolean handled = !carriageEntity.level().isClientSide
+                && carriageEntity.baseHandlePlayerInteraction(player, localPos, side, hand);
         if (nativeControls && handled && player instanceof ServerPlayer driver
                 && carriageEntity.getControllingPlayer().filter(player.getUUID()::equals).isPresent())
             HexieBridges.sync().sendNativeControlsStartedToPlayer(driver, carriageEntity.getId(), localPos);

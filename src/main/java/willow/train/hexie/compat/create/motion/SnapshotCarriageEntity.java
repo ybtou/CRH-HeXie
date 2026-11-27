@@ -183,6 +183,11 @@ public final class SnapshotCarriageEntity extends CarriageContraptionEntity impl
     @Override protected void removePassenger(Entity passenger) {
         // Create removes the mapping and sends the native dismount packet in super.
         var seatIndex = contraption == null ? null : contraption.getSeatMapping().get(passenger.getUUID());
+        if (passenger instanceof Player debugPlayer) {
+            SEAT_LOG.info("[HEXIE-SEAT] removePassenger car={} player={} seatIndex={} client={}",
+                    getId(), debugPlayer.getName().getString(), seatIndex, level().isClientSide);
+            SEAT_LOG.info("[HEXIE-SEAT] removePassenger stack", new Throwable("dismount origin"));
+        }
         super.removePassenger(passenger);
         seats.dismounted(passenger, seatIndex);
     }
@@ -405,6 +410,7 @@ public final class SnapshotCarriageEntity extends CarriageContraptionEntity impl
     public CarriageSnapshotView snapshot;
     public Direction originalForward = Direction.NORTH;
     public boolean behavioursActive;
+    public static final org.slf4j.Logger SEAT_LOG = com.mojang.logging.LogUtils.getLogger();
     private boolean usingWorkPose;
     private VehicleConstraintSolverBodyPoseView workPose;
     public float roll, prevRoll;

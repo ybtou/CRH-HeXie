@@ -108,8 +108,11 @@ public class CRH2DoorBlock extends CustomRenderedDoorBlock implements Interactio
         BlockPos lower = state.getValue(HALF)==DoubleBlockHalf.UPPER ? pos.below() : pos;
         if (level instanceof CreateCarriageBridge.ContraptionWorldAccessorView view)
             return HexieBridges.createDoor().crh2DoorMovement().fullyOpen(view.hexie$getContraption(), lower, this) && state.getValue(OPEN);
-        return state.getValue(OPEN) && level.getBlockEntity(lower) instanceof CustomRenderedDoorEntity door
-                && door.crh2Progress() >= 1;
+        // Sable memoises collision shapes per BlockState and probes them through its plot world, which has no
+        // block entities. Reading the entity there throws, so a missing entity means "not animated open yet".
+        if (!state.getValue(OPEN)) return false;
+        var entity = level.getBlockEntity(lower);
+        return entity instanceof CustomRenderedDoorEntity door && door.crh2Progress() >= 1;
     }
     @Override public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         return collisionShapes.getCollisionShape(this, state, level, pos, context);

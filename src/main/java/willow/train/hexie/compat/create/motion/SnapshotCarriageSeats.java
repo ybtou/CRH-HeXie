@@ -26,7 +26,16 @@ import willow.train.hexie.compat.create.player.CarriagePlayerSupport;
 import willow.train.hexie.compat.create.seat.SeatYZContraptionInteractionPacket;
 
 final class SnapshotCarriageSeats {
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
     private final SnapshotCarriageEntity car;
+
+    /** Seat diagnostics go through slf4j so they always reach latest.log, never a captured stdout. */
+    void log(String stage, Entity subject, BlockPos pos, int index, int value) {
+        if (!(subject instanceof Player)) return;
+        LOGGER.info("[HEXIE-SEAT] {} car={} player={} pos={} index={} value={} client={} vehicle={}",
+                stage, car.getId(), subject.getName().getString(), pos, index, value,
+                subject.level().isClientSide, subject.getVehicle());
+    }
 
     SnapshotCarriageSeats(SnapshotCarriageEntity car) {
         this.car = car;
@@ -79,6 +88,7 @@ final class SnapshotCarriageSeats {
     }
 
     boolean interact(Player player, BlockPos pos, Direction side, InteractionHand hand, int index) {
+        log("interact", player, pos, index, 0);
         BlockState state = car.getContraption().getBlocks().get(pos).state();
         if (car.level().isClientSide) {
             var hit = HexieBridges.Client.render().carriageInteractionCoordinates().pick(player, car);
@@ -92,10 +102,13 @@ final class SnapshotCarriageSeats {
         }
 
         int requested = HexieBridges.worldBlock().hardSeatPositionRequest().get(player, index);
+        int fromTag = requested;
         if (requested < 0) requested = clickedPosition(player, pos, state);
+        log("server-tag", player, pos, index, requested);
         Entity rider = SeatBlock.getLeashed(car.level(), player).or(player);
         int position = HexieBridges.worldBlock().seatYZBlock().getNearestAvailablePosition(
                 state, requested, occupancy(index, rider));
+        log("server-position", player, pos, index, position);
         if (position < 0) return true;
         if (Integer.valueOf(index).equals(car.getContraption().getSeatMapping().get(rider.getUUID()))
                 && HexieBridges.worldBlock().hardSeatPosition().read(rider.getTags(), index) == position) return true;
@@ -124,11 +137,17 @@ final class SnapshotCarriageSeats {
     }
 
     private void mount(Entity passenger, int index, int position) {
-        if (!passenger.startRiding(car, true)) return;
+        log("mount-attempt", passenger, null, index, position);
+        if (!passenger.startRiding(car, true)) {
+            log("mount-FAILED", passenger, null, index, position);
+            return;
+        }
+        log("mount-ok", passenger, null, index, position);
         var positions = HexieBridges.worldBlock().hardSeatPosition();
         positions.clear(passenger);
         passenger.addTag(positions.tag(index, position));
         if (passenger instanceof TamableAnimal animal) animal.setInSittingPose(true);
+        log("mount-post", passenger, null, index, position);
         if (car.level().isClientSide) return;
         var mapping = car.getContraption().getSeatMapping();
         mapping.put(passenger.getUUID(), index);
